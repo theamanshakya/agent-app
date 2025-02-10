@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -44,17 +44,14 @@ const RealtimeChat: React.FC<RealtimeChatProps> = ({
 
   const theme = useTheme();
   const [isRecording, setIsRecording] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isAzure, setIsAzure] = useState(true);
+  const [isAzure] = useState(true);
   const [messages, setMessages] = useState<string[]>([]);
 
   // Form states
-  const [endpoint, setEndpoint] = useState(defaultEndpoint);
-  const [apiKey, setApiKey] = useState(defaultApiKey);
-  const [deploymentOrModel, setDeploymentOrModel] = useState(defaultModel);
-  const [systemMessage, setSystemMessage] = useState(defaultSystemMessage);
-  const [temperature, setTemperature] = useState(0.8);
-  const [selectedVoice, setSelectedVoice] = useState(defaultVoice);
+  const [endpoint] = useState(defaultEndpoint);
+  const [apiKey] = useState(defaultApiKey);
+  const [deploymentOrModel] = useState(defaultModel);
+  const [selectedVoice] = useState(defaultVoice);
 
   // Refs for audio handling
   const realtimeStreamingRef = useRef<LowLevelRTClient | null>(null);

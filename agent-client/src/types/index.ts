@@ -1,8 +1,9 @@
 // Common types used across the application
 export interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
+  subscription?: Subscription;
 }
 
 export interface AuthResponse {
@@ -25,6 +26,13 @@ export interface Agent {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Subscription {
+  type: 'free' | 'premium';
+  maxAgents: number;
+  chatSecondsLimit: number;
+  secondsUsed: number;
 }
 
 export const TTS_PROVIDERS = {

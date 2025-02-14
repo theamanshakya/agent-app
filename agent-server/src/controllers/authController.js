@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { User } = require('../models');
+const { User, Subscription, sequelize } = require('../models');
 const asyncHandler = require('../utils/asyncHandler');
 
 const generateToken = (userId) => {
@@ -13,7 +13,14 @@ exports.register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body;
 
   // Check if user already exists
-  const existingUser = await User.findOne({ where: { email } });
+  const existingUser = await User.findOne({ 
+    where: { email },
+    include: [{
+      model: Subscription,
+      as: 'subscription'
+    }]
+  });
+  
   if (existingUser) {
     return res.status(400).json({
       status: 'error',
@@ -24,23 +31,43 @@ exports.register = asyncHandler(async (req, res) => {
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Create user
-  const user = await User.create({
-    email,
-    password: hashedPassword,
-    name
+  // Create user with subscription in a transaction
+  const result = await sequelize.transaction(async (t) => {
+    // Create user
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      name
+    }, { transaction: t });
+
+    // Create free subscription
+    const subscription = await Subscription.create({
+      userId: user.id,
+      type: 'free',
+      maxAgents: 1,
+      chatSecondsLimit: 300,
+      secondsUsed: 0
+    }, { transaction: t });
+
+    return { user, subscription };
   });
 
   // Generate token
-  const token = generateToken(user.id);
+  const token = generateToken(result.user.id);
 
   res.status(201).json({
     status: 'success',
     data: {
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        subscription: {
+          type: result.subscription.type,
+          maxAgents: result.subscription.maxAgents,
+          chatSecondsLimit: result.subscription.chatSecondsLimit,
+          secondsUsed: result.subscription.secondsUsed
+        }
       },
       token
     }
@@ -50,8 +77,15 @@ exports.register = asyncHandler(async (req, res) => {
 exports.login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Check if user exists
-  const user = await User.findOne({ where: { email } });
+  // Check if user exists with subscription
+  const user = await User.findOne({
+    where: { email },
+    include: [{
+      model: Subscription,
+      as: 'subscription'
+    }]
+  });
+
   if (!user) {
     return res.status(401).json({
       status: 'error',
@@ -68,6 +102,18 @@ exports.login = asyncHandler(async (req, res) => {
     });
   }
 
+  // If user doesn't have a subscription, create a free one
+  let subscription = user.subscription;
+  if (!subscription) {
+    subscription = await Subscription.create({
+      userId: user.id,
+      type: 'free',
+      maxAgents: 1,
+      chatSecondsLimit: 300,
+      secondsUsed: 0
+    });
+  }
+
   // Generate token
   const token = generateToken(user.id);
 
@@ -77,7 +123,13 @@ exports.login = asyncHandler(async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        subscription: {
+          type: subscription.type,
+          maxAgents: subscription.maxAgents,
+          chatSecondsLimit: subscription.chatSecondsLimit,
+          secondsUsed: subscription.secondsUsed
+        }
       },
       token
     }

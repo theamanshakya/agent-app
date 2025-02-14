@@ -1,5 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/authMiddleware');
+const { checkAgentLimit } = require('../middleware/subscriptionMiddleware');
 const {
   createAgent,
   getAgents,
@@ -14,7 +15,7 @@ router.use(protect);
 
 router.route('/agents')
   .get(getAgents)
-  .post(createAgent);
+  .post(checkAgentLimit, createAgent);
 
 router.route('/agents/:id')
   .get(getAgent)

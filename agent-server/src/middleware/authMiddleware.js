@@ -1,20 +1,19 @@
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+const { User, Subscription } = require('../models');
 const asyncHandler = require('../utils/asyncHandler');
 
 exports.protect = asyncHandler(async (req, res, next) => {
   // Get token from header
-  const authHeader = req.headers.authorization;
   let token;
 
-  if (authHeader && authHeader.startsWith('Bearer')) {
-    token = authHeader.split(' ')[1];
+  if (req.headers.authorization?.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
   }
 
   if (!token) {
     return res.status(401).json({
       status: 'error',
-      message: 'Not authorized to access this route'
+      message: 'Not authenticated'
     });
   }
 
@@ -23,14 +22,30 @@ exports.protect = asyncHandler(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Get user from token
-    const user = await User.findByPk(decoded.id, {
+    const user = await User.findOne({
+      where: { id: decoded.id },
+      include: [{
+        model: Subscription,
+        as: 'subscription'
+      }],
       attributes: { exclude: ['password'] }
     });
 
     if (!user) {
       return res.status(401).json({
         status: 'error',
-        message: 'User not found'
+        message: 'User no longer exists'
+      });
+    }
+
+    // If user somehow doesn't have a subscription, create a free one
+    if (!user.subscription) {
+      user.subscription = await Subscription.create({
+        userId: user.id,
+        type: 'free',
+        maxAgents: 1,
+        chatMinutesLimit: 5,
+        minutesUsed: 0
       });
     }
 
@@ -40,7 +55,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       status: 'error',
-      message: 'Not authorized to access this route'
+      message: 'Not authenticated'
     });
   }
 }); 

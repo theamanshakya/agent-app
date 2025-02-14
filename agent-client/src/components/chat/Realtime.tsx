@@ -17,6 +17,7 @@ import { Recorder } from './recorder';
 
 interface RealtimeChatProps {
   onMessageReceived?: (message: string) => void;
+  onStop?: () => void;
   defaultSystemMessage?: string;
   defaultEndpoint?: string;
   defaultApiKey?: string;
@@ -26,6 +27,7 @@ interface RealtimeChatProps {
 
 const RealtimeChat: React.FC<RealtimeChatProps> = ({
   onMessageReceived,
+  onStop,
   defaultSystemMessage = '',
   defaultEndpoint = '',
   defaultApiKey = '',
@@ -218,6 +220,7 @@ const RealtimeChat: React.FC<RealtimeChatProps> = ({
     if (realtimeStreamingRef.current) {
       realtimeStreamingRef.current.close();
     }
+    onStop?.();
   };
 
   const clearMessages = () => {

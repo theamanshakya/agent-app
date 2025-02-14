@@ -13,7 +13,8 @@ const Agent = sequelize.define('Agent', {
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
-    defaultValue: 'active'
+    defaultValue: 'active',
+    allowNull: false
   },
   type: {
     type: DataTypes.STRING,
@@ -44,6 +45,8 @@ const Agent = sequelize.define('Agent', {
       key: 'id'
     }
   }
+}, {
+  timestamps: true
 });
 
 module.exports = Agent; 

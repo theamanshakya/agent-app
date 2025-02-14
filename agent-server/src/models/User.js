@@ -22,15 +22,27 @@ const User = sequelize.define('User', {
   password: {
     type: DataTypes.STRING,
     allowNull: false
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
   }
+}, {
+  timestamps: true
 });
+
+// Instance method to check subscription limits
+User.prototype.checkAgentLimit = async function() {
+  const subscription = await this.getSubscription();
+  const agentCount = await this.countAgents();
+  return agentCount < subscription.maxAgents;
+};
+
+User.prototype.checkChatLimit = async function() {
+  const subscription = await this.getSubscription();
+  return subscription.minutesUsed < subscription.chatMinutesLimit;
+};
+
+User.prototype.updateChatTime = async function(minutes) {
+  const subscription = await this.getSubscription();
+  subscription.minutesUsed += minutes;
+  await subscription.save();
+};
 
 module.exports = User; 

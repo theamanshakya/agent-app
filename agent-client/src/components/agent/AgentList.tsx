@@ -14,7 +14,8 @@ import {
   DialogActions,
   TextField,
   MenuItem,
-  Chip
+  Chip,
+  Tooltip
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -26,9 +27,11 @@ import { useNavigate } from 'react-router-dom';
 import { agentService } from '../../services/agent';
 import type { Agent } from '../../types';
 import { TTS_PROVIDERS, PERSONALITIES } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export function AgentList() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -129,17 +132,27 @@ export function AgentList() {
     return TTS_PROVIDERS[formData.ttsProvider as keyof typeof TTS_PROVIDERS].voices;
   };
 
+  const isAtAgentLimit = agents.length >= (user?.subscription?.maxAgents || 0);
+  const createButtonTooltip = isAtAgentLimit 
+    ? `You have reached your limit of ${user?.subscription?.maxAgents} agents. Please upgrade your subscription to create more agents.`
+    : 'Create a new agent';
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Agents</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Create Agent
-        </Button>
+        <Tooltip title={createButtonTooltip}>
+          <span>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              disabled={isAtAgentLimit}
+            >
+              Create Agent
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
 
       <Grid container spacing={3}>
